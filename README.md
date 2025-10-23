@@ -66,7 +66,8 @@ python main.py
 
 ### Execution Features
 - Live console output streaming
-- Real-time progress bar (detects tqdm, percentages)
+- Real-time progress bar with total progress across chunks
+- ETA estimation for completion time
 - Elapsed time tracking
 - Status per file: Not Run, Running, Completed, Failed
 
@@ -148,6 +149,69 @@ The app automatically finds and displays these files.
 
 ---
 
+## Git Workflow
+
+### First Time Setup
+
+1. **Create GitHub repository** (do not initialize with README, .gitignore, or license)
+2. **Initialize and push:**
+
+```bash
+git init
+git add -A
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/YOUR-REPO.git
+git push -u origin main
+```
+
+### Daily Workflow
+
+**Start Session (Pull Latest):**
+```bash
+# Easy way:
+Double-click: git_start_session.bat
+
+# Manual way:
+git fetch origin
+git reset --hard origin/main
+git clean -nd
+git clean -fd
+```
+
+**End Session (Push Changes):**
+```bash
+# Easy way:
+Double-click: git_end_session.bat
+
+# Manual way:
+git add -A
+git commit -m "Your commit message"
+git fetch origin
+git push --force-with-lease origin HEAD:main
+```
+
+### Useful Git Commands
+
+```bash
+# Check status
+git status
+
+# View changes
+git diff
+
+# View commit history
+git log --oneline
+
+# Undo last commit (keep changes)
+git reset --soft HEAD~1
+
+# View remote URL
+git remote -v
+```
+
+---
+
 ## Application Layout
 
 ```
@@ -158,7 +222,7 @@ The app automatically finds and displays these files.
 │ File Browser ├───────────────────────────────────────────┤
 │              │ Execution Console                         │
 │ □ folder/    │ ┌─────────────────────────────────────┐   │
-│   📄 script1 │ │ Progress Bar | Elapsed Time         │   │
+│   📄 script1 │ │ Progress Bar | ETA | Elapsed Time   │   │
 │   📄 script2 │ └─────────────────────────────────────┘   │
 │              │ Live Console Output...                    │
 │ Status:      ├───────────────────────────────────────────┤
@@ -180,14 +244,29 @@ Settings auto-save to `config.json`:
 
 ---
 
-## Example Workflow
+## Files in This Project
 
-1. Launch app: `python main.py`
-2. **File > Open Folder** → Select this directory
-3. Click `StrategyBacktestExample.py`
-4. Right-click → **Execute Script**
-5. Wait for completion (may take several minutes)
-6. View results in Results panel tabs
+### Application Files
+- `main.py` - Main application window
+- `config_manager.py` - Settings management
+- `file_browser.py` - File tree navigation
+- `code_viewer.py` - Syntax-highlighted viewer
+- `execution_engine.py` - Script execution engine
+- `progress_widget.py` - Progress tracking with ETA
+- `results_parser.py` - Results extraction
+- `results_viewer.py` - Results display
+
+### Utility Files
+- `install_dependencies.bat` - Install packages
+- `install_with_launcher.bat` - Install using `py` command
+- `run_app.bat` - Launch app
+- `run_app_with_launcher.bat` - Launch using `py` command
+- `check_installation.bat` - Verify installation
+- `git_start_session.bat` - Pull latest from GitHub
+- `git_end_session.bat` - Push changes to GitHub
+
+### Example
+- `StrategyBacktestExample.py` - Example backtest script
 
 ---
 
@@ -200,27 +279,21 @@ Settings auto-save to `config.json`:
 
 ---
 
-## Files in This Project
+## What Gets Uploaded to GitHub
 
-### Application Files
-- `main.py` - Main application window
-- `config_manager.py` - Settings management
-- `file_browser.py` - File tree navigation
-- `code_viewer.py` - Syntax-highlighted viewer
-- `execution_engine.py` - Script execution engine
-- `progress_widget.py` - Progress tracking
-- `results_parser.py` - Results extraction
-- `results_viewer.py` - Results display
+**✅ Uploaded:**
+- All Python source files
+- Documentation files
+- Batch scripts
+- Example files
 
-### Utility Files
-- `install_dependencies.bat` - Install packages
-- `install_with_launcher.bat` - Install using `py` command
-- `run_app.bat` - Launch app
-- `run_app_with_launcher.bat` - Launch using `py` command
-- `check_installation.bat` - Verify installation
-
-### Example
-- `StrategyBacktestExample.py` - Example backtest script
+**❌ NOT Uploaded (in .gitignore):**
+- `__pycache__/` folders
+- `config.json` (your personal settings)
+- `*_execution.json` (execution logs)
+- `*.xlsx` (result files)
+- `*.png`, `*.jpg` (generated charts)
+- IDE settings
 
 ---
 
@@ -231,6 +304,7 @@ Settings auto-save to `config.json`:
 - Execution logs saved as `{script_name}_execution.json`
 - Results are cached for fast viewing
 - Code viewer is **read-only** (won't modify your files)
+- Progress bar shows **total progress** across all chunks with ETA
 
 ---
 
@@ -263,32 +337,23 @@ If you're still having issues:
 
 ---
 
-## Contributing
-
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - Copyright (c) 2025
 
----
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## Screenshots
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-*Coming soon - showing the 4-panel interface with live execution*
-
----
-
-## Project Status
-
-**Active Development** - This is a functional application with ongoing improvements planned:
-- Distributed execution across multiple computers
-- Result comparison tools
-- Advanced visualizations
-- Performance optimization suggestions
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 
 ---
 
