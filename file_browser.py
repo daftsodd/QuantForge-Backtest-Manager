@@ -15,12 +15,12 @@ class FileBrowser(QWidget):
     # Signals
     file_selected = pyqtSignal(str)  # Emits file path when selected
     execute_requested = pyqtSignal(str)  # Emits file path to execute
-    view_results_requested = pyqtSignal(str)  # Emits file path to view results
     
     def __init__(self, parent=None):
         super().__init__(parent)
         self.current_folder = None
         self.file_status = {}  # Track execution status: not_run, running, completed, failed
+        self.config_manager = None  # Will be set by main window
         self._init_ui()
     
     def _init_ui(self):
@@ -148,7 +148,6 @@ class FileBrowser(QWidget):
         """)
         
         execute_action = menu.addAction("Execute Script")
-        view_results_action = menu.addAction("View Results")
         menu.addSeparator()
         open_location_action = menu.addAction("Open File Location")
         
@@ -156,8 +155,6 @@ class FileBrowser(QWidget):
         
         if action == execute_action:
             self.execute_requested.emit(file_path)
-        elif action == view_results_action:
-            self.view_results_requested.emit(file_path)
         elif action == open_location_action:
             self._open_file_location(file_path)
     
@@ -185,6 +182,10 @@ class FileBrowser(QWidget):
                 self._update_item_status(item, status)
                 break
             iterator += 1
+        
+        # Persist to config
+        if self.config_manager:
+            self.config_manager.update_file_status(file_path, status)
     
     def _update_item_status(self, item, status):
         """Update the visual status of a tree item."""
@@ -205,9 +206,13 @@ class FileBrowser(QWidget):
         item.setText(1, status_text.get(status, status))
         item.setForeground(1, QBrush(status_color.get(status, QColor("#CCCCCC"))))
     
-    def add_file(self, file_path):
+    def add_file(self, file_path, status="not_run", save_to_config=True):
         """Add a single file to the browser."""
         if not file_path.endswith('.py'):
+            return
+        
+        # Check if file still exists on disk
+        if not os.path.exists(file_path):
             return
         
         # Check if file already exists in tree
@@ -223,5 +228,52 @@ class FileBrowser(QWidget):
         file_item = QTreeWidgetItem(self.tree, [file_name, "Not Run"])
         file_item.setData(0, Qt.ItemDataRole.UserRole, file_path)
         file_item.setForeground(0, QBrush(QColor("#DCDCAA")))
-        self.file_status[file_path] = "not_run"
+        self.file_status[file_path] = status
+        self._update_item_status(file_item, status)
+        
+        # Save to config if requested and config_manager is available
+        if save_to_config and self.config_manager:
+            self.config_manager.add_imported_file(file_path, status)
+    
+    def restore_imported_files(self):
+        """Restore imported files from configuration."""
+        if not self.config_manager:
+            return
+        
+        imported_files = self.config_manager.get_imported_files()
+        for file_entry in imported_files:
+            file_path = file_entry.get("path")
+            status = file_entry.get("status", "not_run")
+            
+            # Check if file still exists
+            if os.path.exists(file_path):
+                # Check for execution metadata to verify/update status
+                verified_status = self._verify_file_status(file_path, status)
+                self.add_file(file_path, status=verified_status, save_to_config=False)
+                
+                # Update config if status changed
+                if verified_status != status:
+                    self.config_manager.update_file_status(file_path, verified_status)
+    
+    def _verify_file_status(self, file_path, current_status):
+        """Verify file status by checking for execution metadata."""
+        import json
+        script_dir = Path(file_path).parent
+        script_name = Path(file_path).stem
+        metadata_file = script_dir / f"{script_name}_execution.json"
+        
+        # If metadata exists, check if execution was successful
+        if os.path.exists(metadata_file):
+            try:
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                    if metadata.get("success", False):
+                        return "completed"
+                    else:
+                        return "failed"
+            except Exception:
+                pass
+        
+        # Return current status if no metadata found
+        return current_status
 

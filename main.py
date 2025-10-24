@@ -16,6 +16,7 @@ from execution_engine import ExecutionEngine
 from progress_widget import ProgressWidget
 from results_parser import ResultsParser
 from results_viewer import ResultsViewer
+from backtest_builder import BacktestBuilder
 
 
 class MainWindow(QMainWindow):
@@ -58,6 +59,7 @@ class MainWindow(QMainWindow):
         
         # Left panel: File browser
         self.file_browser = FileBrowser()
+        self.file_browser.config_manager = self.config_manager  # Pass config manager
         main_splitter.addWidget(self.file_browser)
         
         # Right side: vertical splitter
@@ -145,6 +147,14 @@ class MainWindow(QMainWindow):
         stop_execution_action.triggered.connect(self._stop_execution)
         execute_menu.addAction(stop_execution_action)
         
+        # Backtest Builder menu
+        builder_menu = menu_bar.addMenu("&Backtest Builder")
+        
+        open_builder_action = QAction("&Open Builder...", self)
+        open_builder_action.setShortcut("Ctrl+B")
+        open_builder_action.triggered.connect(self._open_backtest_builder)
+        builder_menu.addAction(open_builder_action)
+        
         # Help menu
         help_menu = menu_bar.addMenu("&Help")
         
@@ -198,7 +208,6 @@ class MainWindow(QMainWindow):
         # File browser signals
         self.file_browser.file_selected.connect(self._on_file_selected)
         self.file_browser.execute_requested.connect(self._execute_script)
-        self.file_browser.view_results_requested.connect(self._view_results)
         
         # Execution engine signals
         self.execution_engine.output_received.connect(self._on_output_received)
@@ -263,6 +272,14 @@ class MainWindow(QMainWindow):
             self.file_browser.set_folder(last_folder)
             self.current_folder = last_folder
             self.status_bar.showMessage(f"Loaded folder: {last_folder}")
+        
+        # Restore imported files
+        self.file_browser.restore_imported_files()
+        
+        # Update status message if imported files were loaded
+        imported_count = len(self.config_manager.get_imported_files())
+        if imported_count > 0:
+            self.status_bar.showMessage(f"Restored {imported_count} imported file(s)")
     
     def _save_state(self):
         """Save window state to configuration."""
@@ -321,11 +338,16 @@ class MainWindow(QMainWindow):
                 # Add all Python files from the folder
                 import os
                 from pathlib import Path
+                file_count = 0
                 for root, dirs, files in os.walk(folder):
                     for file in files:
                         if file.endswith('.py'):
                             file_path = os.path.join(root, file)
                             self.file_browser.add_file(file_path)
+                            file_count += 1
+                
+                self.status_bar.showMessage(f"Imported {file_count} file(s) from folder: {folder}")
+                return
             
             self.status_bar.showMessage(f"Imported folder: {folder}")
     
@@ -387,9 +409,52 @@ class MainWindow(QMainWindow):
     
     def _view_results(self, script_path):
         """View results for a script."""
-        results = self.results_parser.parse_results(script_path)
-        self.results_viewer.display_results(results)
-        self.status_bar.showMessage(f"Viewing results for: {script_path}")
+        try:
+            results = self.results_parser.parse_results(script_path)
+            
+            # Check if we got any results
+            if not results['tables'] and not results['images']:
+                # Check if Excel files exist but couldn't be read
+                from pathlib import Path
+                script_dir = Path(script_path).parent
+                excel_files = list(script_dir.glob("*.xlsx"))
+                
+                if excel_files:
+                    QMessageBox.warning(
+                        self,
+                        "Cannot Read Results",
+                        f"Found Excel file(s) but cannot read them.\n\n"
+                        f"This usually happens when the file is open in Excel or another program.\n\n"
+                        f"Please:\n"
+                        f"1. Close any Excel windows showing the results file\n"
+                        f"2. Try viewing results again\n\n"
+                        f"Files found: {', '.join([f.name for f in excel_files])}"
+                    )
+                    self.status_bar.showMessage("Cannot read results - file may be open in Excel")
+                    return
+                else:
+                    QMessageBox.information(
+                        self,
+                        "No Results Found",
+                        f"No result files found for this script.\n\n"
+                        f"The script may not have completed successfully,\n"
+                        f"or results may not have been generated yet."
+                    )
+                    self.status_bar.showMessage("No results found")
+                    return
+            
+            self.results_viewer.display_results(results)
+            self.status_bar.showMessage(f"Viewing results for: {script_path}")
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error Viewing Results",
+                f"An error occurred while loading results:\n\n{str(e)}\n\n"
+                f"Please check the console output for details."
+            )
+            self.status_bar.showMessage("Error loading results")
+            print(f"Error in _view_results: {e}")
     
     def _on_output_received(self, output):
         """Handle output from execution."""
@@ -422,6 +487,12 @@ class MainWindow(QMainWindow):
     def _on_progress_update(self, output):
         """Handle progress updates from execution output."""
         self.progress_widget.update_from_output(output)
+    
+    def _open_backtest_builder(self):
+        """Open the Backtest Builder window."""
+        builder = BacktestBuilder(self)
+        builder.show()
+        self.status_bar.showMessage("Backtest Builder opened")
     
     def _show_about(self):
         """Show about dialog."""

@@ -35,6 +35,9 @@ config.json
 *.jpeg
 *.gif
 
+# Generated strategies folder
+Generated_Strategies/
+
 # IDEs
 .vscode/
 .idea/

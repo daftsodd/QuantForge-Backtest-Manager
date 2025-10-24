@@ -33,6 +33,15 @@ echo.
 echo Checking Pillow...
 python -c "import PIL; print('✓ Pillow version:', PIL.__version__)" 2>nul || echo ✗ Pillow NOT INSTALLED
 echo.
+echo Checking numpy...
+python -c "import numpy; import numpy; print('✓ numpy version:', numpy.__version__)" 2>nul || echo ✗ numpy NOT INSTALLED
+echo.
+echo Checking numba...
+python -c "import numba; print('✓ numba version:', numba.__version__)" 2>nul || echo ✗ numba NOT INSTALLED
+echo.
+echo Checking joblib / tqdm...
+python -c "import joblib; import tqdm; print('✓ joblib/tqdm OK')" 2>nul || echo ✗ joblib/tqdm NOT INSTALLED
+echo.
 echo ================================================
 echo.
 echo If any packages show as NOT INSTALLED, run:

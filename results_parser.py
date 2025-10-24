@@ -49,15 +49,27 @@ class ResultsParser:
             except Exception as e:
                 print(f"Error loading metadata: {e}")
         
-        # Find and parse Excel files
+        # Find and parse Excel files (support multi-sheet workbooks)
         for file in script_dir.glob("*.xlsx"):
             try:
-                df = pd.read_excel(file)
-                results['tables'].append((file.stem, df))
-                
-                # Extract key statistics if available
-                if not df.empty:
-                    self._extract_statistics(df, results['statistics'])
+                # Use context manager to ensure file is properly closed
+                with pd.ExcelFile(file, engine='openpyxl') as xl:
+                    sheets = xl.sheet_names
+                    # Prefer statistics extraction from 'All_Results' if present
+                    stats_df = None
+                    for sheet in sheets:
+                        sdf = xl.parse(sheet_name=sheet)
+                        results['tables'].append((f"{file.stem}:{sheet}", sdf))
+                        if sheet == 'All_Results':
+                            stats_df = sdf
+                    if stats_df is None and len(sheets) > 0:
+                        # Fallback to first sheet
+                        stats_df = xl.parse(sheet_name=sheets[0])
+                    if stats_df is not None and not stats_df.empty:
+                        self._extract_statistics(stats_df, results['statistics'])
+            except PermissionError:
+                print(f"Warning: Cannot read {file.name} - file is open in another program (Excel?)")
+                print(f"  Please close the file and try again, or the app will skip this file.")
             except Exception as e:
                 print(f"Error reading {file}: {e}")
         

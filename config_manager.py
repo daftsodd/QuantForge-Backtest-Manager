@@ -36,7 +36,8 @@ class ConfigManager:
                 "height": 900
             },
             "splitter_state": None,
-            "recent_folders": []
+            "recent_folders": [],
+            "imported_files": []  # List of imported file paths with status
         }
     
     def save_config(self):
@@ -63,5 +64,46 @@ class ConfigManager:
             recent.remove(folder_path)
         recent.insert(0, folder_path)
         self.config["recent_folders"] = recent[:10]  # Keep only last 10
+        self.save_config()
+    
+    def add_imported_file(self, file_path, status="not_run"):
+        """Add an imported file with its status."""
+        imported = self.config.get("imported_files", [])
+        
+        # Remove if already exists (to update)
+        imported = [f for f in imported if f.get("path") != file_path]
+        
+        # Add the file with status
+        imported.append({
+            "path": file_path,
+            "status": status
+        })
+        
+        self.config["imported_files"] = imported
+        self.save_config()
+    
+    def update_file_status(self, file_path, status):
+        """Update the status of an imported file."""
+        imported = self.config.get("imported_files", [])
+        
+        for file_entry in imported:
+            if file_entry.get("path") == file_path:
+                file_entry["status"] = status
+                self.config["imported_files"] = imported
+                self.save_config()
+                return
+        
+        # If not found in imported files, add it
+        self.add_imported_file(file_path, status)
+    
+    def get_imported_files(self):
+        """Get list of imported files with their status."""
+        return self.config.get("imported_files", [])
+    
+    def remove_imported_file(self, file_path):
+        """Remove an imported file from the list."""
+        imported = self.config.get("imported_files", [])
+        imported = [f for f in imported if f.get("path") != file_path]
+        self.config["imported_files"] = imported
         self.save_config()
 
